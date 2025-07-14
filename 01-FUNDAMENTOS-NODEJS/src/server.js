@@ -16,20 +16,10 @@ const server = http.createServer(async (req, res) => {
   if(route) {
     const routeParams = req.url.match(route.path)
 
-    console.log('URL:', req.url)
-    console.log('Route path regex:', route.path)
-    console.log('Route params:', routeParams)
-    console.log('Route params groups:', routeParams?.groups)
-
     const { query, ...params } = routeParams.groups
-
-    console.log('Query extracted:', query)
-    console.log('Params extracted:', params)
 
     req.params = params
     req.query = query ? extractQueryParams(query): {}
-
-    console.log('Final req.query:', req.query)
 
     return route.handler(req, res)
   }

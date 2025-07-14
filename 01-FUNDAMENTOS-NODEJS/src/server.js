@@ -1,43 +1,37 @@
 import http from 'node:http';
 import { json } from './middlewares/json.js';
-import { Database } from './database.js';
-import { randomUUID } from 'node:crypto';
 
-const database = new Database
+import { routes } from './routes.js';
+import { extractQueryParams } from './utils/extract-query-params.js';
 
 const server = http.createServer(async (req, res) => {
   const { method, url } = req
 
   await json(req, res)
 
-  if(method == 'GET' && url == '/') {
-    const tables = database.selectTables()
+  const route = routes.find(route => {
+    return route.method === method && route.path.test(url);
+  })
 
-    return res
-      .writeHead(200)
-      .end(JSON.stringify(tables))
-  }
+  if(route) {
+    const routeParams = req.url.match(route.path)
 
-  if(method == 'GET' && url == '/users') {
-    const users = database.select('users')
+    console.log('URL:', req.url)
+    console.log('Route path regex:', route.path)
+    console.log('Route params:', routeParams)
+    console.log('Route params groups:', routeParams?.groups)
 
-    return res
-      .writeHead(200)
-      .end(JSON.stringify(users))
-  }
+    const { query, ...params } = routeParams.groups
 
-  if(method == 'POST' && url == '/users') {
-    const {name, email} = req.body
+    console.log('Query extracted:', query)
+    console.log('Params extracted:', params)
 
-    const user = {
-      id: randomUUID(),
-      name, 
-      email
-    }
+    req.params = params
+    req.query = query ? extractQueryParams(query): {}
 
-    database.insert('users', user)
+    console.log('Final req.query:', req.query)
 
-    return res.writeHead(201).end()
+    return route.handler(req, res)
   }
 
   return res.writeHead(404).end()
